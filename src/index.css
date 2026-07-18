@@ -44,6 +44,7 @@ button, input, select, textarea { font: inherit; }
 .a4-lines { position: absolute; top: 38.1mm; left: 17.5mm; width: 181.3mm; }
 .a4-line { height: 6.2mm; display: flex; align-items: baseline; white-space: nowrap; }
 .a4-line.compact { height: 7.05mm; }
+.a4-risk-line { box-sizing: border-box; padding-left: 24mm; display: grid; grid-template-columns: 7mm 57mm 9mm 80mm; column-gap: 1mm; align-items: baseline; }
 .a4-fill { display: inline-block; min-width: 9mm; height: 5.2mm; padding: 0 .6mm; border-bottom: .22mm dotted #000; overflow: hidden; white-space: nowrap; vertical-align: bottom; }
 .a4-fill-center { text-align: center; }
 .a4-check { display: inline-block; width: 5.2mm; text-align: center; white-space: nowrap; margin-right: 0.5mm; font-size: 14pt; line-height: 1; }
