@@ -42,14 +42,14 @@ button, input, select, textarea { font: inherit; }
 .a4-student-photo { position: absolute; top: 5.9mm; right: 17.6mm; width: 21.9mm; height: 24.9mm; border: .25mm solid #000; display: grid; place-items: center; overflow: hidden; font-size: 12pt; background: #fff; }
 .a4-student-photo img, .a4-photo-box img { width: 100%; height: 100%; object-fit: cover; }
 .a4-lines { position: absolute; top: 38.1mm; left: 17.5mm; width: 181.3mm; }
-.a4-line { height: 6.2mm; display: flex; align-items: baseline; white-space: nowrap; }
+.a4-line { height: 6.35mm; display: flex; align-items: baseline; white-space: nowrap; }
 .a4-line.compact { height: 7.05mm; }
 .a4-risk-line { box-sizing: border-box; padding-left: 24mm; display: grid; grid-template-columns: 7mm 57mm 9mm 80mm; column-gap: 1mm; align-items: baseline; }
 .a4-fill { display: inline-block; min-width: 9mm; height: 5.2mm; padding: 0 .6mm; border-bottom: .22mm dotted #000; overflow: hidden; white-space: nowrap; vertical-align: bottom; }
 .a4-fill-center { text-align: center; }
 .a4-check { display: inline-block; width: 5.2mm; text-align: center; white-space: nowrap; margin-right: 0.5mm; font-size: 14pt; line-height: 1; }
-.a4-photo-heading { position: absolute; top: 169.8mm; left: 36mm; right: 36mm; height: 8.7mm; display: flex; align-items: center; justify-content: center; border: .25mm solid #000; background: #fff; font-weight: 700; text-decoration: underline; }
-.a4-photo-grid { position: absolute; top: 179.2mm; left: 16.2mm; width: 186.8mm; height: 63.9mm; display: grid; grid-template-columns: 1fr 1fr; gap: 1.8mm; }
+.a4-photo-heading { position: absolute; top: 171.8mm; left: 36mm; right: 36mm; height: 8.7mm; display: flex; align-items: center; justify-content: center; border: .25mm solid #000; background: #fff; font-weight: 700; text-decoration: underline; }
+.a4-photo-grid { position: absolute; top: 181.2mm; left: 16.2mm; width: 186.8mm; height: 63.9mm; display: grid; grid-template-columns: 1fr 1fr; gap: 1.8mm; }
 .a4-photo-box { position: relative; border: .25mm solid #2e5689; overflow: hidden; display: grid; place-items: center; color: #555; font-size: 14pt; }
 .a4-photo-caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 1mm; text-align: center; background: rgba(255,255,255,.82); }
 .a4-cert { position: absolute; top: 249mm; left: 17.5mm; right: 17.5mm; text-align: center; font-weight: 700; }
