@@ -10,7 +10,7 @@ const emptyForm = {
   guardianName:'', guardianJob:'', guardianPhone:'', guardianRelation:'', parentStatus:'', incomePerPerson:'',
   hasDisease:'ไม่มี', diseaseDetail:'', distanceKm:'', distanceMeters:'', travelHours:'', travelMinutes:'', houseCondition:'',
   responsibilities:[], responsibilityOther:'', hobbies:'', riskBehaviors:[], riskDetail:'', supportNeeds:[], followUpNote:'',
-  teacher1:'นางประไพ หนูเสือ', teacher2:'ว่าที่ร้อยตรีหญิง สุทธิดา แซ่หล่อ', visitDate:new Date().toISOString().slice(0,10), academicYear:'2569', studentPhoto:'', housePhoto:'', visitPhoto:''
+  teacher1:'นางประไพ หนูเสือ', teacher2:'ว่าที่ร้อยตรีหญิงสุทธิดา แซ่หล่อ', visitDate:new Date().toISOString().slice(0,10), academicYear:'2569', studentPhoto:'', housePhoto:'', visitPhoto:''
 }
 
 const navItems = [['dashboard','⌂','ภาพรวม'],['form','＋','บันทึกใหม่'],['records','▤','รายการ'],['settings','⚙','ตั้งค่า']]
