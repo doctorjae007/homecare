@@ -152,7 +152,7 @@ function VisitForm({value,setValue,onSave,onCancel,saving}) {
 }
 
 const Fill = ({children,width='30mm'}) => <span className="a4-fill" style={{width}}>{escText(children)}</span>
-const Check = ({active}) => <span className="a4-check">{active?'☑':'☐'}</span>
+const Check = ({active}) => <span className="a4-check">{active?'(✓)':'( )'}</span>
 function PrintableForm({record}) {
   const r = record || emptyForm, status = r.parentStatus || ''
   return <div className="print-document"><article className="a4-form">
