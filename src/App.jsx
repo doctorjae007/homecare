@@ -181,7 +181,7 @@ function PrintableForm({record}) {
     <div className="a4-photo-heading">ภาพกิจกรรมเยี่ยมบ้าน ภายนอกบ้านนักเรียน</div>
     <div className="a4-photo-grid"><div className="a4-photo-box">{r.housePhoto?<img src={r.housePhoto} alt="ภายนอกบ้าน"/>:'ภาพภายนอกบ้าน'}<div className="a4-photo-caption">รูปหลังคาและฝาบ้าน</div></div><div className="a4-photo-box">{r.visitPhoto?<img src={r.visitPhoto} alt="กิจกรรมเยี่ยมบ้าน"/>:'ภาพกิจกรรมเยี่ยมบ้าน'}<div className="a4-photo-caption">รูปหลังคาและฝาบ้าน</div></div></div>
     <div className="a4-cert">ขอรับรองว่าข้อมูลและภาพถ่ายของนักเรียนเป็นจริง</div>
-    <div className="a4-signatures"><div>ลงชื่อ <span className="a4-sign-line"></span> ครูที่ปรึกษา<div className="a4-sign-name">( {r.teacher1} )</div></div><div>ลงชื่อ <span className="a4-sign-line"></span> ครูที่ปรึกษา<div className="a4-sign-name">( {r.teacher2} )</div></div></div>
+    <div className="a4-signatures"><div>ลงชื่อ <span className="a4-sign-line"></span> <span className="a4-sign-role">ครูที่ปรึกษา</span><div className="a4-sign-name">( {r.teacher1} )</div></div><div>ลงชื่อ <span className="a4-sign-line"></span> <span className="a4-sign-role">ครูที่ปรึกษา</span><div className="a4-sign-name">( {r.teacher2} )</div></div></div>
   </article></div>
 }
 

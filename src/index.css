@@ -49,8 +49,9 @@ button, input, select, textarea { font: inherit; }
 .a4-photo-box { position: relative; border: .25mm solid #2e5689; overflow: hidden; display: grid; place-items: center; color: #555; font-size: 14pt; }
 .a4-photo-caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 1mm; text-align: center; background: rgba(255,255,255,.82); }
 .a4-cert { position: absolute; top: 249mm; left: 17.5mm; right: 17.5mm; text-align: center; font-weight: 700; }
-.a4-signatures { position: absolute; top: 258mm; left: 26mm; right: 17.5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 14mm; text-align: center; font-size: 15.2pt; }
+.a4-signatures { position: absolute; top: 258mm; left: 26mm; right: 17.5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; text-align: center; font-size: 15.2pt; }
 .a4-sign-line { display: inline-block; width: 50mm; height: 5mm; border-bottom: .22mm dotted #000; }
+.a4-sign-role { font-size: 11.5pt; white-space: nowrap; }
 .a4-sign-name { margin-top: 1.6mm; }
 
 /* The source PDF places the photo section much lower than the data block.
