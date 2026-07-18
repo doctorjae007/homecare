@@ -153,6 +153,7 @@ function VisitForm({value,setValue,onSave,onCancel,saving}) {
 
 const Fill = ({children,width='30mm',center=false}) => <span className={`a4-fill${center?' a4-fill-center':''}`} style={{width}}>{escText(children)}</span>
 const Check = ({active}) => <span className="a4-check">{active?'(✓)':'( )'}</span>
+const RiskOption = ({active,label,detail}) => <span className="a4-risk-option"><Check active={active}/><span>{label}</span><span>คือ</span><Fill>{detail}</Fill></span>
 const thaiDigits = (value) => String(value ?? '').replace(/[0-9]/g, digit => '๐๑๒๓๔๕๖๗๘๙'[Number(digit)])
 function PrintableForm({record}) {
   const r = record || emptyForm, status = r.parentStatus || ''
@@ -176,11 +177,8 @@ function PrintableForm({record}) {
       <div className="a4-line">๙. ภาระงานความรับผิดชอบของนักเรียนที่มีต่อครอบครัว</div>
       <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;<Check active={r.responsibilities?.includes('ช่วยงานบ้าน')}/> ช่วยงานบ้าน <Check active={r.responsibilities?.includes('ช่วยพ่อแม่หารายได้')}/> ช่วยพ่อแม่หารายได้ <Check active={r.responsibilities?.includes('อื่น ๆ')}/> อื่นๆ ระบุ <Fill width="66mm">{r.responsibilityOther}</Fill></div>
       <div className="a4-line">๑๐. กิจกรรมยามว่างหรืองานอดิเรก <Fill width="128mm">{r.hobbies}</Fill></div>
-      <div className="a4-line">๑๑. พฤติกรรมเสี่ยง</div>
-      <div className="a4-line a4-risk-line"><Check active={r.riskBehaviors?.includes('สารเสพติด')}/><span>พฤติกรรมการใช้สารเสพติด</span><span>คือ</span><Fill width="78mm">{riskDetailFor('สารเสพติด')}</Fill></div>
-      <div className="a4-line a4-risk-line"><Check active={r.riskBehaviors?.includes('ทางเพศ')}/><span>พฤติกรรมทางเพศ</span><span>คือ</span><Fill width="78mm">{riskDetailFor('ทางเพศ')}</Fill></div>
-      <div className="a4-line a4-risk-line"><Check active={r.riskBehaviors?.includes('ความรุนแรง')}/><span>พฤติกรรมการใช้ความรุนแรง</span><span>คือ</span><Fill width="78mm">{riskDetailFor('ความรุนแรง')}</Fill></div>
-      <div className="a4-line a4-risk-line"><Check active={r.riskBehaviors?.includes('ติดเกม/สื่อออนไลน์')}/><span>การติดเกม ติดสื่อออนไลน์</span><span>คือ</span><Fill width="78mm">{riskDetailFor('ติดเกม/สื่อออนไลน์')}</Fill></div>
+      <div className="a4-line a4-risk-pair"><span>๑๑. พฤติกรรมเสี่ยง</span><RiskOption active={r.riskBehaviors?.includes('สารเสพติด')} label="พฤติกรรมการใช้สารเสพติด" detail={riskDetailFor('สารเสพติด')}/><RiskOption active={r.riskBehaviors?.includes('ทางเพศ')} label="พฤติกรรมทางเพศ" detail={riskDetailFor('ทางเพศ')}/></div>
+      <div className="a4-line a4-risk-pair"><span></span><RiskOption active={r.riskBehaviors?.includes('ความรุนแรง')} label="พฤติกรรมการใช้ความรุนแรง" detail={riskDetailFor('ความรุนแรง')}/><RiskOption active={r.riskBehaviors?.includes('ติดเกม/สื่อออนไลน์')} label="การติดเกม ติดสื่อออนไลน์" detail={riskDetailFor('ติดเกม/สื่อออนไลน์')}/></div>
       <div className="a4-line">๑๒. ต้องการการสนับสนุนในด้านการเรียน <Check active={r.supportNeeds?.includes('สอนการบ้าน')}/> สอนการบ้าน <Check active={r.supportNeeds?.includes('ให้เรียนพิเศษ')}/> ให้เรียนพิเศษ <Check active={r.supportNeeds?.includes('จัดหาสื่อ')}/> จัดหาสื่อ <Check active={r.supportNeeds?.includes('ไม่มี')}/> ไม่มีการสนับสนุน</div>
     </div>
     <div className="a4-photo-heading">ภาพกิจกรรมเยี่ยมบ้าน ภายนอกบ้านนักเรียน</div>
