@@ -153,10 +153,11 @@ function VisitForm({value,setValue,onSave,onCancel,saving}) {
 
 const Fill = ({children,width='30mm'}) => <span className="a4-fill" style={{width}}>{escText(children)}</span>
 const Check = ({active}) => <span className="a4-check">{active?'(✓)':'( )'}</span>
+const thaiDigits = (value) => String(value ?? '').replace(/[0-9]/g, digit => '๐๑๒๓๔๕๖๗๘๙'[Number(digit)])
 function PrintableForm({record}) {
   const r = record || emptyForm, status = r.parentStatus || ''
   return <div className="print-document"><article className="a4-form">
-    <header className="a4-header"><h1>แบบบันทึกการเยี่ยมบ้านนักเรียน ประจำปีการศึกษา <b>{r.academicYear}</b></h1><h2>โรงเรียนหาดใหญ่รัฐประชาสรรค์</h2></header>
+    <header className="a4-header"><h1>แบบบันทึกการเยี่ยมบ้านนักเรียน ประจำปีการศึกษา <b>{thaiDigits(r.academicYear)}</b></h1><h2>โรงเรียนหาดใหญ่รัฐประชาสรรค์</h2></header>
     <div className="a4-student-photo">{r.studentPhoto?<img src={r.studentPhoto} alt="รูปนักเรียน"/>:'รูปถ่าย'}</div>
     <div className="a4-lines">
       <div className="a4-line">๑. ชื่อ - สกุลนักเรียน <Fill width="72mm">{r.studentName}</Fill> ชั้น <Fill width="17mm">{r.classLevel}</Fill> / <Fill width="15mm">{r.room}</Fill> ชื่อเล่น <Fill width="24mm">{r.nickname}</Fill></div>
