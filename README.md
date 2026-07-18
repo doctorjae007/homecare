@@ -1,0 +1,58 @@
+# ระบบบันทึกการเยี่ยมบ้านนักเรียน
+
+เว็บแอป Vite + React + Tailwind CSS สำหรับกรอกแบบเยี่ยมบ้าน บันทึกข้อมูลลง Google Sheet เก็บรูปใน Google Drive และพิมพ์แบบ A4 ตาม PDF ต้นฉบับ
+
+## ระบบที่เปิดให้ใช้งาน
+
+- **ระบบนักเรียน** (`#student`) เปิดแบบฟอร์มเพื่อกรอกและส่งข้อมูลเท่านั้น ไม่ต้องเข้าสู่ระบบ และไม่สามารถอ่านข้อมูลเดิมได้
+- **ระบบคุณครู** (`#teacher`) ต้องเข้าสู่ระบบ Google และอนุญาตเฉพาะ `ta458@hatyairat.ac.th` กับ `jaeautobot@gmail.com`
+- หน้าแรกให้ผู้ใช้เลือกระบบก่อนเข้าใช้งาน
+
+## เปิดใช้งานในเครื่อง
+
+```powershell
+npm.cmd install
+npm.cmd run dev
+```
+
+เปิด URL ที่ Vite แสดง เช่น `http://127.0.0.1:5173/`
+
+## สร้างไฟล์สำหรับนำขึ้นเว็บ
+
+```powershell
+npm.cmd run build
+```
+
+ไฟล์พร้อมเผยแพร่จะอยู่ในโฟลเดอร์ `dist/` และตั้งค่า Vite `base: './'` ไว้แล้ว
+
+## เชื่อม Google Sheet
+
+1. สร้าง Google Sheet แล้วเปิด **ส่วนขยาย > Apps Script**
+2. ลบโค้ดเดิมและวางเนื้อหาจาก `Code.gs`
+3. สร้าง **OAuth 2.0 Client ID ชนิด Web application** ใน Google Cloud Console
+4. เพิ่มโดเมนที่เปิดหน้าเว็บใน **Authorized JavaScript origins** เช่น `http://localhost:5173` และ URL เว็บจริง
+5. คัดลอก Client ID ซึ่งลงท้ายด้วย `.apps.googleusercontent.com`
+6. เปิด **Project Settings > Script Properties** ใน Apps Script แล้วเพิ่ม `GOOGLE_CLIENT_ID` โดยใช้ Client ID เดียวกัน
+7. กด **Deploy > New deployment > Web app**
+8. เลือก Execute as: **Me** และ Who has access: **Anyone** หรือขอบเขตที่ Google Workspace โรงเรียนรองรับ
+9. สร้างไฟล์ `.env.local` จาก `.env.example` และใส่ Client ID หรือกรอก Client ID ที่หน้าเข้าสู่ระบบครั้งแรก
+10. เข้าสู่ระบบด้วย Google แล้วทดสอบการบันทึก
+
+Apps Script URL ถูกกำหนดใน `src/App.jsx` ตัวแปร `SCRIPT_URL`
+
+## สิทธิ์ผู้ใช้
+
+- `ta458@hatyairat.ac.th` และ `jaeautobot@gmail.com`: ดู Dashboard, บันทึกล่าสุด, รายการทั้งหมด แก้ไข และพิมพ์ได้
+- นักเรียนและผู้ใช้ทั่วไป: เข้าเฉพาะระบบนักเรียนเพื่อกรอกและส่งข้อมูล
+- ฝั่ง Apps Script ตรวจ Google ID Token และตรวจสิทธิ์ผู้ดูแลซ้ำก่อนคืนข้อมูลทุกครั้ง
+
+## การพิมพ์
+
+1. บันทึกข้อมูลนักเรียน
+2. ไปหน้า **รายการ**
+3. กด **พิมพ์ฟอร์ม**
+4. ในหน้าต่างพิมพ์ เลือกกระดาษ A4, แนวตั้ง, Scale 100% และปิด Headers and footers
+
+หน้าเอกสารใช้หน่วยมิลลิเมตรและตำแหน่งจาก PDF ต้นฉบับ เพื่อคงฟอร์มทั้งหมดไว้ใน A4 หนึ่งหน้า
+
+> ข้อมูลเยี่ยมบ้านเป็นข้อมูลส่วนบุคคล ไม่ควรแชร์ Google Sheet หรือโฟลเดอร์รูปเป็นสาธารณะ หากเผยแพร่ระบบเป็นวงกว้างควรเพิ่ม Google Sign-In และตรวจสิทธิ์อีเมลที่ Apps Script

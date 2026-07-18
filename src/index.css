@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "TH Sarabun Local";
+  src: local("TH Sarabun New"), local("TH SarabunPSK"), local("TH Sarabun IT๙");
+}
+
+:root { font-family: "Sarabun", Tahoma, sans-serif; color: #183247; background: #f3f6f8; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
+.field-label { @apply mb-1.5 block text-sm font-semibold text-slate-700; }
+.field-input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100; }
+.card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
+.choice { @apply inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm; }
+.choice input { accent-color: #17365d; }
+
+.print-document { display: none; }
+
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  html, body, #root { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #fff; }
+  .screen-app { display: none !important; }
+  .print-document { display: block !important; }
+}
+
+.a4-form {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  font-family: "TH Sarabun Local", "TH Sarabun New", "TH SarabunPSK", serif;
+  font-size: 15.96pt;
+  line-height: 1;
+}
+.a4-header { position: absolute; top: 8.5mm; left: 17.5mm; right: 16mm; text-align: center; }
+.a4-header h1 { margin: 0; font-size: 18pt; font-weight: 700; }
+.a4-header h2 { margin: 1.3mm 0 0; font-size: 15.96pt; font-weight: 700; }
+.a4-student-photo { position: absolute; top: 5.9mm; right: 17.6mm; width: 21.9mm; height: 24.9mm; border: .25mm solid #000; display: grid; place-items: center; overflow: hidden; font-size: 12pt; background: #fff; }
+.a4-student-photo img, .a4-photo-box img { width: 100%; height: 100%; object-fit: cover; }
+.a4-lines { position: absolute; top: 38.1mm; left: 17.5mm; width: 181.3mm; }
+.a4-line { height: 7.31mm; display: flex; align-items: baseline; white-space: nowrap; }
+.a4-line.compact { height: 7.05mm; }
+.a4-fill { display: inline-block; min-width: 9mm; height: 5.2mm; padding: 0 .6mm; border-bottom: .22mm dotted #000; overflow: hidden; white-space: nowrap; vertical-align: bottom; }
+.a4-check { display: inline-block; width: 4.6mm; text-align: center; }
+.a4-photo-heading { position: absolute; top: 169.8mm; left: 36mm; right: 36mm; height: 8.7mm; display: flex; align-items: center; justify-content: center; border: .25mm solid #000; background: #fff; font-weight: 700; text-decoration: underline; }
+.a4-photo-grid { position: absolute; top: 179.2mm; left: 16.2mm; width: 186.8mm; height: 63.9mm; display: grid; grid-template-columns: 1fr 1fr; gap: 1.8mm; }
+.a4-photo-box { position: relative; border: .25mm solid #2e5689; overflow: hidden; display: grid; place-items: center; color: #555; font-size: 14pt; }
+.a4-photo-caption { position: absolute; left: 0; right: 0; bottom: 0; padding: 1mm; text-align: center; background: rgba(255,255,255,.82); }
+.a4-cert { position: absolute; top: 249mm; left: 17.5mm; right: 17.5mm; text-align: center; font-weight: 700; }
+.a4-signatures { position: absolute; top: 258mm; left: 26mm; right: 17.5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 14mm; text-align: center; font-size: 15.2pt; }
+.a4-sign-line { display: inline-block; width: 50mm; height: 5mm; border-bottom: .22mm dotted #000; }
+.a4-sign-name { margin-top: 1.6mm; }
+
+/* The source PDF places the photo section much lower than the data block.
+   Use this print-only scale to preserve every source line on a single A4 page. */
+@media print {
+  .a4-form { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+
+.print-preview-mode { background: #cbd5e1; }
+.print-preview-mode .screen-app { display: none; }
+.print-preview-mode .print-document { display: block; width: 210mm; margin: 16px auto; box-shadow: 0 10px 35px rgba(15,23,42,.28); }
