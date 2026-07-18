@@ -151,7 +151,7 @@ function VisitForm({value,setValue,onSave,onCancel,saving}) {
   </form>
 }
 
-const Fill = ({children,width='30mm'}) => <span className="a4-fill" style={{width}}>{escText(children)}</span>
+const Fill = ({children,width='30mm',center=false}) => <span className={`a4-fill${center?' a4-fill-center':''}`} style={{width}}>{escText(children)}</span>
 const Check = ({active}) => <span className="a4-check">{active?'(✓)':'( )'}</span>
 const thaiDigits = (value) => String(value ?? '').replace(/[0-9]/g, digit => '๐๑๒๓๔๕๖๗๘๙'[Number(digit)])
 function PrintableForm({record}) {
@@ -167,9 +167,9 @@ function PrintableForm({record}) {
       <div className="a4-line">๓. ชื่อ - สกุล ผู้ปกครองนักเรียน <Fill width="77mm">{r.guardianName}</Fill> อาชีพ <Fill width="62mm">{r.guardianJob}</Fill></div>
       <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;เบอร์โทรศัพท์ <Fill width="52mm">{r.guardianPhone}</Fill> ความสัมพันธ์ของผู้ปกครองกับนักเรียน <Fill width="70mm">{r.guardianRelation}</Fill></div>
       <div className="a4-line">๔. สถานภาพบิดา - มารดา <Check active={status==='อยู่ร่วมกัน'}/> อยู่ร่วมกัน <Check active={status==='แยกกันอยู่'}/> แยกกันอยู่ <Check active={status==='หย่าร้าง'}/> หย่าร้าง <Check active={status==='บิดาเสียชีวิต'}/> บิดาเสียชีวิต <Check active={status==='มารดาเสียชีวิต'}/> มารดาเสียชีวิต <Check active={status==='บิดามารดาเสียชีวิต'}/> บิดามารดาเสียชีวิต</div>
-      <div className="a4-line">๕. รายได้เฉลี่ยต่อคน (รวมรายได้ครัวเรือน หารด้วยจำนวนสมาชิกทั้งหมด) <Fill width="48mm">{r.incomePerPerson}</Fill> บาท / เดือน</div>
+      <div className="a4-line">๕. รายได้เฉลี่ยต่อคน (รวมรายได้ครัวเรือน หารด้วยจำนวนสมาชิกทั้งหมด) <Fill width="48mm" center>{r.incomePerPerson}</Fill> บาท / เดือน</div>
       <div className="a4-line">๖. โรคประจำตัวนักเรียน <Check active={r.hasDisease==='ไม่มี'}/> ไม่มีโรคประจำตัว <Check active={r.hasDisease==='มี'}/> มีโรคประจำตัว คือ <Fill width="72mm">{r.diseaseDetail}</Fill></div>
-      <div className="a4-line">๗. ระยะทางระหว่างบ้านไปโรงเรียน (ไป/กลับ) <Fill width="18mm">{r.distanceKm}</Fill> กิโลเมตร <Fill width="18mm">{r.distanceMeters}</Fill> เมตร ใช้เวลาเดินทาง <Fill width="13mm">{r.travelHours}</Fill> ชม. <Fill width="13mm">{r.travelMinutes}</Fill> นาที</div>
+      <div className="a4-line">๗. ระยะทางระหว่างบ้านไปโรงเรียน (ไป/กลับ) <Fill width="18mm" center>{r.distanceKm}</Fill> กิโลเมตร <Fill width="18mm" center>{r.distanceMeters}</Fill> เมตร ใช้เวลาเดินทาง <Fill width="13mm" center>{r.travelHours}</Fill> ชม. <Fill width="13mm" center>{r.travelMinutes}</Fill> นาที</div>
       <div className="a4-line">๘. สภาพบ้านที่อยู่อาศัย ดังนี้</div>
       <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;<Check active={r.houseCondition==='แข็งแรงปลอดภัย'}/> สภาพบ้านแข็งแรงปลอดภัย</div>
       <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;<Check active={r.houseCondition?.includes('ชำรุด')}/> สภาพบ้านชำรุดทรุดโทรม หรือบ้านทำจากวัสดุพื้นบ้าน เช่น ไม้ไผ่ ใบจาก หรือวัสดุเหลือใช้</div>
