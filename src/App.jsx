@@ -156,6 +156,7 @@ const Check = ({active}) => <span className="a4-check">{active?'(✓)':'( )'}</s
 const thaiDigits = (value) => String(value ?? '').replace(/[0-9]/g, digit => '๐๑๒๓๔๕๖๗๘๙'[Number(digit)])
 function PrintableForm({record}) {
   const r = record || emptyForm, status = r.parentStatus || ''
+  const riskDetailFor = (risk) => r.riskBehaviors?.includes(risk) ? r.riskDetail : ''
   return <div className="print-document"><article className="a4-form">
     <header className="a4-header"><h1>แบบบันทึกการเยี่ยมบ้านนักเรียน ประจำปีการศึกษา <b>{thaiDigits(r.academicYear)}</b></h1><h2>โรงเรียนหาดใหญ่รัฐประชาสรรค์</h2></header>
     <div className="a4-student-photo">{r.studentPhoto?<img src={r.studentPhoto} alt="รูปนักเรียน"/>:'รูปถ่าย'}</div>
@@ -175,8 +176,8 @@ function PrintableForm({record}) {
       <div className="a4-line">๙. ภาระงานความรับผิดชอบของนักเรียนที่มีต่อครอบครัว</div>
       <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;<Check active={r.responsibilities?.includes('ช่วยงานบ้าน')}/> ช่วยงานบ้าน <Check active={r.responsibilities?.includes('ช่วยพ่อแม่หารายได้')}/> ช่วยพ่อแม่หารายได้ <Check active={r.responsibilities?.includes('อื่น ๆ')}/> อื่นๆ ระบุ <Fill width="66mm">{r.responsibilityOther}</Fill></div>
       <div className="a4-line">๑๐. กิจกรรมยามว่างหรืองานอดิเรก <Fill width="128mm">{r.hobbies}</Fill></div>
-      <div className="a4-line">๑๑. พฤติกรรมเสี่ยง <Check active={r.riskBehaviors?.includes('สารเสพติด')}/> พฤติกรรมการใช้สารเสพติด <Check active={r.riskBehaviors?.includes('ทางเพศ')}/> พฤติกรรมทางเพศ <Fill width="45mm">{r.riskDetail}</Fill></div>
-      <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;<Check active={r.riskBehaviors?.includes('ความรุนแรง')}/> พฤติกรรมการใช้ความรุนแรง <Check active={r.riskBehaviors?.includes('ติดเกม/สื่อออนไลน์')}/> การติดเกม ติดสื่อออนไลน์</div>
+      <div className="a4-line">๑๑. พฤติกรรมเสี่ยง <Check active={r.riskBehaviors?.includes('สารเสพติด')}/> พฤติกรรมการใช้สารเสพติด คือ <Fill width="27mm">{riskDetailFor('สารเสพติด')}</Fill> <Check active={r.riskBehaviors?.includes('ทางเพศ')}/> พฤติกรรมทางเพศ คือ <Fill width="28mm">{riskDetailFor('ทางเพศ')}</Fill></div>
+      <div className="a4-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<Check active={r.riskBehaviors?.includes('ความรุนแรง')}/> พฤติกรรมการใช้ความรุนแรง คือ <Fill width="33mm">{riskDetailFor('ความรุนแรง')}</Fill> <Check active={r.riskBehaviors?.includes('ติดเกม/สื่อออนไลน์')}/> การติดเกม ติดสื่อออนไลน์</div>
       <div className="a4-line">๑๒. ต้องการการสนับสนุนในด้านการเรียน <Check active={r.supportNeeds?.includes('สอนการบ้าน')}/> สอนการบ้าน <Check active={r.supportNeeds?.includes('ให้เรียนพิเศษ')}/> ให้เรียนพิเศษ <Check active={r.supportNeeds?.includes('จัดหาสื่อ')}/> จัดหาสื่อ <Check active={r.supportNeeds?.includes('ไม่มี')}/> ไม่มีการสนับสนุน</div>
     </div>
     <div className="a4-photo-heading">ภาพกิจกรรมเยี่ยมบ้าน ภายนอกบ้านนักเรียน</div>
