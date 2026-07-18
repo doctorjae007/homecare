@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkCMEMStSVQjI3vxL-XWvSariaO4XqXDxm5guk2mOlYKLepCg1arYFSKAoDQPVBRP-/exec'
 const API_VERSION = '2026-07-18-v4'
 const STORAGE = 'homeVisitRecordsV2'
-const CONFIG = 'homeVisitConfigV5'
+const CONFIG = 'homeVisitConfigV6'
 const emptyForm = {
   recordId:'', createdAt:'', studentName:'', nickname:'', classLevel:'', room:'', studentNo:'', gender:'',
   villageName:'', houseNo:'', villageNo:'', soi:'', road:'', subdistrict:'', district:'', province:'สงขลา', postalCode:'',
