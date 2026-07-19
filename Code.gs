@@ -2,7 +2,7 @@
 const SHEET_NAME = 'HomeVisits';
 const PHOTO_FOLDER_NAME = 'รูปเยี่ยมบ้านนักเรียน';
 const ADMIN_EMAILS = ['ta458@hatyairat.ac.th','jaeautobot@gmail.com'];
-const API_VERSION = '2026-07-19-v7';
+const API_VERSION = '2026-07-19-v8';
 const HEADERS = [
   'recordId','createdAt','updatedAt','studentName','nickname','classLevel','room','studentNo','gender',
   'villageName','houseNo','villageNo','soi','road','subdistrict','district','province','postalCode',
@@ -47,12 +47,8 @@ function doPost(e) {
       requireStudentEditToken_(body.recordId, body.editToken);
       return json_({ok:true,data:getPrintRecord_(body.recordId)});
     }
-    if (body.action === 'searchStudent') {
-      return json_({ok:true,data:searchStudentRecords_(body.classLevel,body.room,body.studentNo)});
-    }
-    if (body.action === 'claimStudent') {
-      const claimed = claimStudentRecord_(body);
-      return json_({ok:true,data:claimed,editToken:studentEditToken_(claimed.recordId)});
+    if (body.action === 'searchStudentByPhone') {
+      return json_({ok:true,data:findStudentRecordsByPhone_(body.guardianPhone)});
     }
     const user = verifyGoogleIdToken_(body.idToken);
     requireAdmin_(user);
@@ -138,34 +134,15 @@ function normalizePhone_(value) {
   return String(value || '').replace(/\D/g,'');
 }
 
-function searchStudentRecords_(classLevel,room,studentNo) {
-  if (!classLevel || !room || !studentNo) throw new Error('กรุณาระบุชั้น ห้อง และเลขที่ให้ครบ');
-  return listRecords_().filter(record =>
-    String(record.classLevel) === String(classLevel) &&
-    String(record.room) === String(room) &&
-    String(record.studentNo) === String(studentNo)
-  ).slice(0,5).map(record => ({
-    recordId:record.recordId,
-    studentName:record.studentName,
-    classLevel:record.classLevel,
-    room:record.room,
-    studentNo:record.studentNo,
-    updatedAt:record.updatedAt
-  }));
-}
-
-function claimStudentRecord_(body) {
-  const record = getRecord_(body.recordId);
-  const identityMatches = String(record.classLevel) === String(body.classLevel) &&
-    String(record.room) === String(body.room) &&
-    String(record.studentNo) === String(body.studentNo);
-  const submittedPhone = normalizePhone_(body.guardianPhone);
-  const phoneMatches = submittedPhone.length >= 9 && submittedPhone === normalizePhone_(record.guardianPhone);
-  if (!identityMatches || !phoneMatches) {
+function findStudentRecordsByPhone_(guardianPhone) {
+  const submittedPhone = normalizePhone_(guardianPhone);
+  if (submittedPhone.length < 9) throw new Error('กรุณากรอกเบอร์มือถือให้ถูกต้อง');
+  const records = listRecords_().filter(record => submittedPhone === normalizePhone_(record.guardianPhone)).slice(0,10);
+  if (!records.length) {
     Utilities.sleep(350);
-    throw new Error('ข้อมูลยืนยันไม่ตรงกับรายการเดิม');
+    throw new Error('ไม่พบฟอร์มที่ตรงกับเบอร์มือถืนี้');
   }
-  return record;
+  return records.map(record => ({record:record,editToken:studentEditToken_(record.recordId)}));
 }
 
 function getSheet_() {

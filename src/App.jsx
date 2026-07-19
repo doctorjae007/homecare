@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkCMEMStSVQjI3vxL-XWvSariaO4XqXDxm5guk2mOlYKLepCg1arYFSKAoDQPVBRP-/exec'
-const API_VERSION = '2026-07-19-v7'
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxKtZYIdDJouvL0-a02RZo8TKINaMq4NhyTV8TkAMdbOL8IL48LlVBLfjUqNCSoGWT7/exec'
+const API_VERSION = '2026-07-19-v8'
 const STORAGE = 'homeVisitRecordsV2'
 const CONFIG = 'homeVisitConfigV6'
 const STUDENT_RECORDS = 'homeVisitStudentRecordsV1'
@@ -205,13 +205,13 @@ function App() {
   const [credential,setCredential] = useState(()=>sessionStorage.getItem('homeVisitGoogleIdToken')||'')
   const user = useMemo(()=>decodeGoogleCredential(credential),[credential])
   const isAdmin = ['ta458@hatyairat.ac.th','jaeautobot@gmail.com'].includes(String(user?.email||'').toLowerCase())
-  const [view,setView] = useState('form'), [records,setRecords] = useState([]), [studentRecords,setStudentRecords] = useState([]), [form,setForm] = useState(emptyForm), [printing,setPrinting] = useState([]), [saving,setSaving] = useState(false), [message,setMessage] = useState('')
+  const [view,setView] = useState(initialMode==='teacher'?'dashboard':initialMode==='student'?'studentRecords':'form'), [records,setRecords] = useState([]), [studentRecords,setStudentRecords] = useState([]), [form,setForm] = useState(emptyForm), [printing,setPrinting] = useState([]), [saving,setSaving] = useState(false), [message,setMessage] = useState('')
   const [deletingId,setDeletingId] = useState(''), [printingAll,setPrintingAll] = useState(false)
-  const [studentSearch,setStudentSearch] = useState({classLevel:'',room:'',studentNo:''}), [searchResults,setSearchResults] = useState([]), [claimPhone,setClaimPhone] = useState(''), [studentSearching,setStudentSearching] = useState(false), [claimingId,setClaimingId] = useState('')
+  const [phoneSearch,setPhoneSearch] = useState(''), [studentSearching,setStudentSearching] = useState(false)
   const previewMode = new URLSearchParams(window.location.search).has('print-preview')
   const acceptCredential = useCallback(token=>{sessionStorage.setItem('homeVisitGoogleIdToken',token);setCredential(token)},[])
   const logout = useCallback(()=>{sessionStorage.removeItem('homeVisitGoogleIdToken');setCredential('');setRecords([]);setPrinting([]);window.google?.accounts?.id?.disableAutoSelect()},[])
-  const selectMode = selected => { setMode(selected);window.location.hash=selected;setMessage('');setView(selected==='teacher'?'dashboard':'form') }
+  const selectMode = selected => { setMode(selected);window.location.hash=selected;setMessage('');setView(selected==='teacher'?'dashboard':'studentRecords') }
   const backToPortal = () => { logout();setMode('');window.history.replaceState(null,'',window.location.pathname+window.location.search);setMessage('') }
   useEffect(()=>{ document.body.classList.toggle('print-preview-mode',previewMode); return()=>document.body.classList.remove('print-preview-mode') },[previewMode])
   useEffect(()=>{
@@ -313,24 +313,19 @@ function App() {
     } catch(error) { setMessage(error.message) }
   }
   const searchPreviousStudent = async event => {
-    event.preventDefault(); setStudentSearching(true); setSearchResults([]); setClaimPhone(''); setMessage('')
+    event.preventDefault()
+    const normalizedPhone=phoneSearch.replace(/\D/g,'')
+    if (normalizedPhone.length<9) return setMessage('กรุณากรอกเบอร์มือถือให้ถูกต้อง')
+    setStudentSearching(true); setMessage('')
     try {
-      const result=await callApi(config,'',{action:'searchStudent',...studentSearch})
-      setSearchResults(result.data||[])
-      if (!(result.data||[]).length) setMessage('ไม่พบรายการ กรุณาตรวจชั้น ห้อง และเลขที่อีกครั้ง')
+      const result=await callApi(config,'',{action:'searchStudentByPhone',guardianPhone:normalizedPhone})
+      const matches=result.data||[], accessList=readJson(STUDENT_RECORDS,[])
+      const matchIds=new Set(matches.map(item=>item.record.recordId))
+      localStorage.setItem(STUDENT_RECORDS,JSON.stringify([...accessList.filter(item=>!matchIds.has(item.recordId)),...matches.map(item=>({recordId:item.record.recordId,editToken:item.editToken}))]))
+      setStudentRecords(current=>[...matches.map(item=>item.record),...current.filter(item=>!matchIds.has(item.recordId))].sort(byStudentNo))
+      setMessage(`พบรายการ ${matches.length} รายการ สามารถแก้ไขหรือพิมพ์ได้เลย`)
+      setPhoneSearch('')
     } catch(error) { setMessage(error.message) } finally { setStudentSearching(false) }
-  }
-  const claimPreviousStudent = async record => {
-    if (!claimPhone.trim()) return setMessage('กรุณากรอกเบอร์โทรผู้ปกครองเพื่อยืนยัน')
-    setClaimingId(record.recordId); setMessage('')
-    try {
-      const result=await callApi(config,'',{action:'claimStudent',recordId:record.recordId,guardianPhone:claimPhone,...studentSearch})
-      const accessList=readJson(STUDENT_RECORDS,[])
-      localStorage.setItem(STUDENT_RECORDS,JSON.stringify([...accessList.filter(item=>item.recordId!==result.data.recordId),{recordId:result.data.recordId,editToken:result.editToken}]))
-      setStudentRecords(current=>[result.data,...current.filter(item=>item.recordId!==result.data.recordId)].sort(byStudentNo))
-      setSearchResults([]); setClaimPhone(''); setForm({...emptyForm,...result.data}); setView('form')
-      setMessage('ยืนยันรายการเดิมสำเร็จ สามารถแก้ไขและบันทึกได้เลย')
-    } catch(error) { setMessage(error.message) } finally { setClaimingId('') }
   }
   const persistConfig = async test => {
     localStorage.setItem(CONFIG,JSON.stringify(config))
@@ -349,8 +344,7 @@ function App() {
       {view==='form'&&<><div className="mb-5 flex items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">{form.recordId?'แก้ไขข้อมูล':'บันทึกการเยี่ยมบ้าน'}</h2><p className="text-slate-500">{mode==='teacher'?`บัญชี ${user?.email} · ผู้ดูแลระบบ`:'นักเรียนสามารถกลับมาแก้ไขรายการที่บันทึกจากเครื่องนี้ได้'}</p></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${mode==='teacher'?'bg-emerald-100 text-emerald-700':'bg-blue-100 text-blue-700'}`}>{mode==='teacher'?'● ยืนยันบัญชี Google แล้ว':form.recordId?'● กำลังแก้ไขรายการ':'● บันทึกแล้วแก้ไขได้'}</span></div><VisitForm value={form} setValue={setForm} onSave={save} onCancel={()=>setForm(emptyForm)} saving={saving}/></>}
       {mode==='student'&&view==='studentRecords'&&<>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">รายการของนักเรียน</h2><p className="text-slate-500">แก้ไขรายการจากเครื่องนี้ หรือค้นหารายการที่เคยกรอกไว้</p></div><button onClick={()=>{setForm(emptyForm);setView('form')}} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">＋ บันทึกใหม่</button></div>
-        <form onSubmit={searchPreviousStudent} className="card mb-5 p-5 md:p-6"><h3 className="text-lg font-bold text-[#17365d]">ค้นหารายการเดิม</h3><p className="mt-1 text-sm text-slate-500">สำหรับนักเรียนที่เคยกรอกแล้ว ให้ระบุข้อมูลให้ตรงกับรายการเดิม</p><div className="mt-4 grid gap-4 md:grid-cols-4"><Select label="ชั้น" name="classLevel" value={studentSearch.classLevel} onChange={e=>setStudentSearch(current=>({...current,classLevel:e.target.value}))} required><option value="">เลือกชั้น</option>{['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'].map(value=><option key={value}>{value}</option>)}</Select><Input label="ห้อง" name="room" type="number" value={studentSearch.room} onChange={e=>setStudentSearch(current=>({...current,room:e.target.value}))} required/><Input label="เลขที่" name="studentNo" type="number" value={studentSearch.studentNo} onChange={e=>setStudentSearch(current=>({...current,studentNo:e.target.value}))} required/><button disabled={studentSearching} className="self-end rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{studentSearching?'กำลังค้นหา...':'ค้นหารายการ'}</button></div></form>
-        {searchResults.length>0&&<div className="card mb-5 border-amber-200 bg-amber-50 p-5"><h3 className="font-bold text-amber-900">พบรายการเดิม</h3><p className="mb-4 text-sm text-amber-800">กรอกเบอร์โทรผู้ปกครองที่เคยบันทึกไว้ เพื่อยืนยันสิทธิ์ก่อนแก้ไข</p><div className="space-y-3">{searchResults.map(record=><div className="rounded-xl border border-amber-200 bg-white p-4" key={record.recordId}><b>{record.studentName}</b><p className="text-sm text-slate-500">ชั้น {record.classLevel}/{record.room} · เลขที่ {record.studentNo}</p><div className="mt-3 flex flex-wrap gap-3"><input className="field-input max-w-sm" type="tel" value={claimPhone} onChange={e=>setClaimPhone(e.target.value)} placeholder="เบอร์โทรผู้ปกครอง"/><button type="button" onClick={()=>claimPreviousStudent(record)} disabled={claimingId===record.recordId} className="rounded-xl bg-amber-600 px-5 py-2.5 font-semibold text-white disabled:opacity-50">{claimingId===record.recordId?'กำลังยืนยัน...':'ยืนยันและแก้ไข'}</button></div></div>)}</div></div>}
+        <form onSubmit={searchPreviousStudent} className="card mb-5 border-blue-200 bg-gradient-to-br from-white to-blue-50 p-5 md:p-7"><h3 className="text-xl font-bold text-[#17365d]">ค้นหาฟอร์มของนักเรียน</h3><p className="mt-1 text-sm text-slate-500">กรอกเบอร์มือถือผู้ปกครองที่บันทึกไว้ เพื่อเข้าแก้ไขหรือพิมพ์ฟอร์มของตนเอง</p><div className="mt-5 flex max-w-2xl flex-col gap-3 sm:flex-row"><input className="field-input flex-1 text-lg" type="tel" inputMode="tel" autoComplete="tel" value={phoneSearch} onChange={e=>setPhoneSearch(e.target.value)} placeholder="เบอร์มือถือ เช่น 0812345678" required/><button disabled={studentSearching} className="rounded-xl bg-blue-700 px-6 py-3 font-semibold text-white disabled:opacity-50">{studentSearching?'กำลังค้นหา...':'ค้นหาฟอร์ม'}</button></div><p className="mt-3 text-xs text-slate-400">ระบบจะแสดงข้อมูลเฉพาะเมื่อเบอร์ตรงกับรายการเดิม</p></form>
         <h3 className="mb-3 text-lg font-bold text-slate-800">รายการที่ยืนยันในเครื่องนี้</h3><div className="grid gap-4">{studentRecords.map(record=><div className="card flex flex-wrap items-center justify-between gap-4 p-5" key={record.recordId}><div><b className="text-lg text-[#17365d]">{record.studentName}</b><p className="text-sm text-slate-500">ชั้น {record.classLevel}/{record.room} · เลขที่ {record.studentNo||'-'} · แก้ไขล่าสุด {formatDate((record.updatedAt||'').slice(0,10))}</p></div><div className="flex flex-wrap gap-2"><button onClick={()=>editStudent(record)} className="rounded-xl bg-blue-50 px-5 py-2.5 font-semibold text-blue-700">แก้ไขข้อมูล</button><button onClick={()=>printStudentRecord(record)} className="rounded-xl bg-[#17365d] px-5 py-2.5 font-semibold text-white">พิมพ์ฟอร์ม</button></div></div>)}{!studentRecords.length&&<div className="card py-10 text-center text-slate-400">ยังไม่มีรายการที่ยืนยันในเครื่องนี้</div>}</div>
       </>}
       {isAdmin&&view==='records'&&<><div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">รายการเยี่ยมบ้าน</h2><p className="text-slate-500">เฉพาะอีเมลผู้ดูแลที่ได้รับอนุญาต</p></div><div className="flex flex-wrap gap-3"><button onClick={printAllRecords} disabled={!records.length||printingAll} className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{printingAll?'กำลังเตรียม...':'⎙ พิมพ์รวมตามเลขที่'}</button><button onClick={()=>{setForm(emptyForm);setView('form')}} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">＋ เพิ่มรายการ</button></div></div><div className="card overflow-x-auto"><table className="w-full min-w-3xl text-left text-sm"><thead className="bg-slate-50 text-slate-600"><tr>{['เลขที่','วันที่','นักเรียน','ชั้น/ห้อง','ผู้ปกครอง','ผู้บันทึก','สถานะ','จัดการ'].map(x=><th className="px-4 py-3" key={x}>{x}</th>)}</tr></thead><tbody>{records.map(record=><tr className="border-t border-slate-100" key={record.recordId}><td className="px-4 py-3 text-center font-bold">{record.studentNo||'-'}</td><td className="px-4 py-3">{formatDate(record.visitDate)}</td><td className="px-4 py-3 font-semibold">{record.studentName}</td><td className="px-4 py-3">{record.classLevel}/{record.room}</td><td className="px-4 py-3">{record.guardianName}</td><td className="px-4 py-3 text-xs">{record.submittedBy||'-'}</td><td className="px-4 py-3">{shouldFollow(record)?'ควรติดตาม':'ทั่วไป'}</td><td className="px-4 py-3"><div className="flex flex-wrap gap-2"><button onClick={()=>edit(record)} className="rounded-lg bg-slate-100 px-3 py-2">แก้ไข</button><button onClick={()=>printRecord(record)} className="rounded-lg bg-[#17365d] px-3 py-2 text-white">พิมพ์ฟอร์ม</button><button onClick={()=>deleteRecord(record)} disabled={deletingId===record.recordId} className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 disabled:opacity-50">{deletingId===record.recordId?'กำลังลบ...':'ลบ'}</button></div></td></tr>)}</tbody></table>{!records.length&&<p className="py-12 text-center text-slate-400">ยังไม่มีข้อมูล</p>}</div></>}
