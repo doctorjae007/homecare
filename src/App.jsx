@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyclnuEOovtRcKVOcJNmk3roxBZOfFlnTrxKc_cvMgmtm30JMx2bPWZO4HJpQgoMQ/exec'
-const API_VERSION = '2026-07-19-v8'
+const API_VERSION = '2026-07-19-v9'
 const STORAGE = 'homeVisitRecordsV2'
 const CONFIG = 'homeVisitConfigV6'
 const STUDENT_RECORDS = 'homeVisitStudentRecordsV1'

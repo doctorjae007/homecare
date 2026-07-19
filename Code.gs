@@ -2,7 +2,7 @@
 const SHEET_NAME = 'HomeVisits';
 const PHOTO_FOLDER_NAME = 'รูปเยี่ยมบ้านนักเรียน';
 const ADMIN_EMAILS = ['ta458@hatyairat.ac.th','jaeautobot@gmail.com'];
-const API_VERSION = '2026-07-19-v8';
+const API_VERSION = '2026-07-19-v9';
 const HEADERS = [
   'recordId','createdAt','updatedAt','studentName','nickname','classLevel','room','studentNo','gender',
   'villageName','houseNo','villageNo','soi','road','subdistrict','district','province','postalCode',
@@ -134,6 +134,13 @@ function normalizePhone_(value) {
   return String(value || '').replace(/\D/g,'');
 }
 
+function displayPhone_(value) {
+  const phone = normalizePhone_(value);
+  // Google Sheets may have converted an old Thai mobile number to a number
+  // and removed its leading zero. Restore it when reading legacy rows.
+  return phone.length === 9 && phone.charAt(0) !== '0' ? '0' + phone : phone;
+}
+
 function findStudentRecordsByPhone_(guardianPhone) {
   const submittedPhone = normalizePhone_(guardianPhone);
   if (submittedPhone.length < 9) throw new Error('กรุณากรอกเบอร์มือถือให้ถูกต้อง');
@@ -216,6 +223,7 @@ function rowToObject_(row) {
   const result = {};
   HEADERS.forEach((header,index) => {
     let value = row[index] || '';
+    if (header === 'guardianPhone') value = displayPhone_(value);
     if (['responsibilities','riskBehaviors','supportNeeds'].indexOf(header) !== -1) {
       try { value = value ? JSON.parse(value) : []; } catch (_) { value = value ? value.split(', ') : []; }
     }
@@ -240,8 +248,13 @@ function saveRecord_(data) {
       const index = ids.indexOf(String(data.recordId));
       if (index >= 0) targetRow = index + 2;
     }
-    if (targetRow > 0) sheet.getRange(targetRow,1,1,HEADERS.length).setValues([row]);
-    else sheet.appendRow(row);
+    if (targetRow > 0) {
+      sheet.getRange(targetRow,HEADERS.indexOf('guardianPhone') + 1).setNumberFormat('@');
+      sheet.getRange(targetRow,1,1,HEADERS.length).setValues([row]);
+    } else {
+      sheet.appendRow(row);
+      sheet.getRange(sheet.getLastRow(),HEADERS.indexOf('guardianPhone') + 1).setNumberFormat('@').setValue(String(data.guardianPhone || ''));
+    }
     return data;
   } finally { lock.releaseLock(); }
 }
