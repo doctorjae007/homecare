@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxKtZYIdDJouvL0-a02RZo8TKINaMq4NhyTV8TkAMdbOL8IL48LlVBLfjUqNCSoGWT7/exec'
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyclnuEOovtRcKVOcJNmk3roxBZOfFlnTrxKc_cvMgmtm30JMx2bPWZO4HJpQgoMQ/exec'
 const API_VERSION = '2026-07-19-v8'
 const STORAGE = 'homeVisitRecordsV2'
 const CONFIG = 'homeVisitConfigV6'
