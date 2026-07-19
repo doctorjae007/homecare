@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkCMEMStSVQjI3vxL-XWvSariaO4XqXDxm5guk2mOlYKLepCg1arYFSKAoDQPVBRP-/exec'
-const API_VERSION = '2026-07-18-v4'
+const API_VERSION = '2026-07-19-v5'
 const STORAGE = 'homeVisitRecordsV2'
 const CONFIG = 'homeVisitConfigV6'
+const STUDENT_RECORDS = 'homeVisitStudentRecordsV1'
 const emptyForm = {
   recordId:'', createdAt:'', studentName:'', nickname:'', classLevel:'', room:'', studentNo:'', gender:'',
   villageName:'', houseNo:'', villageNo:'', soi:'', road:'', subdistrict:'', district:'', province:'สงขลา', postalCode:'',
@@ -24,6 +25,11 @@ function readJson(key, fallback) { try { return JSON.parse(localStorage.getItem(
 function escText(value) { return String(value ?? '') }
 function formatDate(value) { if (!value) return '-'; const date = new Date(value+'T00:00:00'); return Number.isNaN(+date) ? value : date.toLocaleDateString('th-TH') }
 function shouldFollow(record) { return record.riskBehaviors?.length > 0 || record.houseCondition?.includes('ชำรุด') || record.supportNeeds?.some(x=>x!=='ไม่มี') || Boolean(record.followUpNote) }
+function byStudentNo(a,b) {
+  const aNo = Number.parseInt(a.studentNo,10), bNo = Number.parseInt(b.studentNo,10)
+  const noCompare = (Number.isFinite(aNo)?aNo:Number.MAX_SAFE_INTEGER) - (Number.isFinite(bNo)?bNo:Number.MAX_SAFE_INTEGER)
+  return noCompare || String(a.studentName||'').localeCompare(String(b.studentName||''),'th')
+}
 
 async function callApi(config, idToken, payload) {
   const response = await fetch(config.url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({...payload,idToken}) })
@@ -155,10 +161,10 @@ const Fill = ({children,width='30mm',center=false}) => <span className={`a4-fill
 const Check = ({active}) => <span className="a4-check">{active?'(✓)':'( )'}</span>
 const RiskOption = ({active,label,detail}) => <span className="a4-risk-option"><Check active={active}/><span>{label}</span><span>คือ</span><Fill>{detail}</Fill></span>
 const thaiDigits = (value) => String(value ?? '').replace(/[0-9]/g, digit => '๐๑๒๓๔๕๖๗๘๙'[Number(digit)])
-function PrintableForm({record}) {
+function PrintableRecord({record}) {
   const r = record || emptyForm, status = r.parentStatus || ''
   const riskDetailFor = (risk) => r.riskBehaviors?.includes(risk) ? r.riskDetail : ''
-  return <div className="print-document"><article className="a4-form">
+  return <article className="a4-form">
     <header className="a4-header"><h1>แบบบันทึกการเยี่ยมบ้านนักเรียน ประจำปีการศึกษา <b>{thaiDigits(r.academicYear)}</b></h1><h2>โรงเรียนหาดใหญ่รัฐประชาสรรค์</h2></header>
     <div className="a4-student-photo">{r.studentPhoto?<img src={r.studentPhoto} alt="รูปนักเรียน"/>:'รูปถ่าย'}</div>
     <div className="a4-lines">
@@ -185,7 +191,10 @@ function PrintableForm({record}) {
     <div className="a4-photo-grid"><div className="a4-photo-box">{r.housePhoto?<img src={r.housePhoto} alt="ภายนอกบ้าน"/>:'ภาพภายนอกบ้าน'}<div className="a4-photo-caption">รูปหลังคาและฝาบ้าน</div></div><div className="a4-photo-box">{r.visitPhoto?<img src={r.visitPhoto} alt="กิจกรรมเยี่ยมบ้าน"/>:'ภาพกิจกรรมเยี่ยมบ้าน'}<div className="a4-photo-caption">รูปหลังคาและฝาบ้าน</div></div></div>
     <div className="a4-cert">ขอรับรองว่าข้อมูลและภาพถ่ายของนักเรียนเป็นจริง</div>
     <div className="a4-signatures"><div>ลงชื่อ <span className="a4-sign-line"></span> <span className="a4-sign-role">ครูที่ปรึกษา</span><div className="a4-sign-name">( {r.teacher1} )</div></div><div>ลงชื่อ <span className="a4-sign-line"></span> <span className="a4-sign-role">ครูที่ปรึกษา</span><div className="a4-sign-name">( {r.teacher2} )</div></div></div>
-  </article></div>
+  </article>
+}
+function PrintableForm({records=[]}) {
+  return <div className="print-document">{records.map(record=><PrintableRecord key={record.recordId} record={record}/>)}</div>
 }
 
 function App() {
@@ -196,11 +205,11 @@ function App() {
   const [credential,setCredential] = useState(()=>sessionStorage.getItem('homeVisitGoogleIdToken')||'')
   const user = useMemo(()=>decodeGoogleCredential(credential),[credential])
   const isAdmin = ['ta458@hatyairat.ac.th','jaeautobot@gmail.com'].includes(String(user?.email||'').toLowerCase())
-  const [view,setView] = useState('form'), [records,setRecords] = useState([]), [form,setForm] = useState(emptyForm), [printing,setPrinting] = useState(null), [saving,setSaving] = useState(false), [message,setMessage] = useState('')
-  const [deletingId,setDeletingId] = useState('')
+  const [view,setView] = useState('form'), [records,setRecords] = useState([]), [studentRecords,setStudentRecords] = useState([]), [form,setForm] = useState(emptyForm), [printing,setPrinting] = useState([]), [saving,setSaving] = useState(false), [message,setMessage] = useState('')
+  const [deletingId,setDeletingId] = useState(''), [printingAll,setPrintingAll] = useState(false)
   const previewMode = new URLSearchParams(window.location.search).has('print-preview')
   const acceptCredential = useCallback(token=>{sessionStorage.setItem('homeVisitGoogleIdToken',token);setCredential(token)},[])
-  const logout = useCallback(()=>{sessionStorage.removeItem('homeVisitGoogleIdToken');setCredential('');setRecords([]);setPrinting(null);window.google?.accounts?.id?.disableAutoSelect()},[])
+  const logout = useCallback(()=>{sessionStorage.removeItem('homeVisitGoogleIdToken');setCredential('');setRecords([]);setPrinting([]);window.google?.accounts?.id?.disableAutoSelect()},[])
   const selectMode = selected => { setMode(selected);window.location.hash=selected;setMessage('');setView(selected==='teacher'?'dashboard':'form') }
   const backToPortal = () => { logout();setMode('');window.history.replaceState(null,'',window.location.pathname+window.location.search);setMessage('') }
   useEffect(()=>{ document.body.classList.toggle('print-preview-mode',previewMode); return()=>document.body.classList.remove('print-preview-mode') },[previewMode])
@@ -215,20 +224,42 @@ function App() {
       setView('form'); setRecords([])
     }).catch(error=>{setMessage(error.message);logout()})
   },[credential,mode])
+  useEffect(()=>{
+    if (mode !== 'student') return
+    const accessList = readJson(STUDENT_RECORDS,[]).filter(item=>item?.recordId&&item?.editToken)
+    if (!accessList.length) return setStudentRecords([])
+    let active = true
+    callApi(config,'',{action:'version'}).then(version=>{
+      if (version.apiVersion !== API_VERSION) throw new Error(`Apps Script ยังเป็นเวอร์ชันเก่า กรุณา Deploy เวอร์ชัน ${API_VERSION}`)
+      return Promise.all(accessList.map(item=>callApi(config,'',{action:'getStudent',recordId:item.recordId,editToken:item.editToken}).then(result=>result.data).catch(()=>null)))
+    }).then(items=>{ if(active) setStudentRecords(items.filter(Boolean).sort(byStudentNo)) })
+      .catch(error=>{if(active)setMessage(error.message)})
+    return()=>{active=false}
+  },[mode])
   const stats = useMemo(()=>({total:records.length,male:records.filter(x=>x.gender==='ชาย').length,female:records.filter(x=>x.gender==='หญิง').length,follow:records.filter(shouldFollow).length}),[records])
   const save = async event => {
     event.preventDefault(); setSaving(true); setMessage('')
-    const data={...form,recordId:form.recordId||'HV-'+Date.now(),createdAt:form.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}
+    const data={...form,recordId:form.recordId||(mode==='teacher'?'HV-'+Date.now():''),createdAt:form.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}
     try {
+      if (mode === 'student') {
+        const version=await callApi(config,'',{action:'version'})
+        if (version.apiVersion !== API_VERSION) throw new Error(`Apps Script ยังเป็นเวอร์ชันเก่า กรุณา Deploy เวอร์ชัน ${API_VERSION}`)
+      }
       const action = mode === 'teacher' ? 'saveTeacher' : 'saveStudent'
-      const saved=(await callApi(config,mode==='teacher'?credential:'',{action,data})).data
+      const studentAccess = readJson(STUDENT_RECORDS,[])
+      const editToken = studentAccess.find(item=>item.recordId===form.recordId)?.editToken || ''
+      const result=await callApi(config,mode==='teacher'?credential:'',{action,data,editToken})
+      const saved=result.data
       if (mode === 'teacher') {
         setRecords(current=>[saved,...current.filter(x=>x.recordId!==saved.recordId)])
         setView('records'); setForm(emptyForm); setMessage('บันทึกลง Google Sheet และ Drive แล้ว')
       } else {
+        const nextAccess=[...studentAccess.filter(item=>item.recordId!==saved.recordId),{recordId:saved.recordId,editToken:result.editToken}]
+        localStorage.setItem(STUDENT_RECORDS,JSON.stringify(nextAccess))
+        setStudentRecords(current=>[saved,...current.filter(item=>item.recordId!==saved.recordId)].sort(byStudentNo))
         setForm(emptyForm)
-        window.alert('บันทึกข้อมูลเรียบร้อย')
-        backToPortal()
+        setView('studentRecords')
+        setMessage('บันทึกข้อมูลเรียบร้อย สามารถกดแก้ไขได้จากรายการนี้')
       }
     } catch(error) { setMessage(error.message) } finally { setSaving(false) }
   }
@@ -237,11 +268,27 @@ function App() {
     setMessage('กำลังเตรียมข้อมูลและรูปภาพสำหรับพิมพ์...')
     try {
       const result = await callApi(config,credential,{action:'getPrintRecord',recordId:record.recordId})
-      setPrinting(result.data)
+      setPrinting([result.data])
       await waitForPrintImages()
       setMessage('')
       window.print()
     } catch(error) { setMessage(error.message) }
+  }
+  const printAllRecords = async () => {
+    if (!isAdmin || !records.length || printingAll) return
+    setPrintingAll(true)
+    const sorted=[...records].sort(byStudentNo), printable=[]
+    try {
+      for (let index=0; index<sorted.length; index+=1) {
+        setMessage(`กำลังเตรียมแบบพิมพ์ ${index+1}/${sorted.length}...`)
+        const result=await callApi(config,credential,{action:'getPrintRecord',recordId:sorted[index].recordId})
+        printable.push(result.data)
+      }
+      setPrinting(printable)
+      await waitForPrintImages()
+      setMessage('')
+      window.print()
+    } catch(error) { setMessage(error.message) } finally { setPrintingAll(false) }
   }
   const deleteRecord = async record => {
     if (!isAdmin || !window.confirm(`ยืนยันลบรายงานของ ${record.studentName || 'นักเรียน'} ใช่หรือไม่?\nรูปภาพที่เกี่ยวข้องจะถูกย้ายไปถังขยะใน Google Drive`)) return
@@ -249,11 +296,12 @@ function App() {
     try {
       await callApi(config,credential,{action:'deleteTeacher',recordId:record.recordId})
       setRecords(current=>current.filter(item=>item.recordId!==record.recordId))
-      if (printing?.recordId === record.recordId) setPrinting(null)
+      if (printing.some(item=>item.recordId===record.recordId)) setPrinting([])
       setMessage('ลบรายงานเรียบร้อยแล้ว')
     } catch(error) { setMessage(error.message) } finally { setDeletingId('') }
   }
   const edit = record => { if(!isAdmin)return;setForm({...emptyForm,...record});setView('form') }
+  const editStudent = record => { setForm({...emptyForm,...record});setView('form') }
   const persistConfig = async test => {
     localStorage.setItem(CONFIG,JSON.stringify(config))
     if (!test) return setMessage('บันทึกการตั้งค่าแล้ว')
@@ -263,15 +311,16 @@ function App() {
 
   if (!mode) return <PortalChoice onSelect={selectMode}/>
   if (mode === 'teacher' && !user) return <GoogleLogin clientId={config.clientId} onCredential={acceptCredential} onSaveClientId={saveClientId} onBack={backToPortal} message={message}/>
-  const visibleNav = mode === 'teacher' ? navItems : navItems.filter(([id])=>id==='form')
+  const visibleNav = mode === 'teacher' ? navItems : [['form','＋','บันทึก'],['studentRecords','▤','ข้อมูลของฉัน']]
   return <><div className="screen-app min-h-screen bg-slate-100">
     <header className="sticky top-0 z-30 bg-gradient-to-r from-[#17365d] to-[#23679f] text-white shadow-lg"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3"><div className="flex items-center gap-3"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-white font-bold text-[#17365d]">{mode==='teacher'?'ครู':'นร'}</div><div><h1 className="font-bold">{mode==='teacher'?'ระบบคุณครู':'ระบบนักเรียนกรอกข้อมูล'}</h1><p className="text-xs text-blue-100">โรงเรียนหาดใหญ่รัฐประชาสรรค์</p></div></div><div className="flex items-center gap-3"><nav className="flex gap-1">{visibleNav.map(([id,icon,label])=><button key={id} onClick={()=>setView(id)} className={`rounded-xl px-3 py-2 text-sm ${view===id?'bg-white text-[#17365d]':'hover:bg-white/10'}`}>{icon} <span className="hidden sm:inline">{label}</span></button>)}</nav>{mode==='teacher'&&<div className="hidden text-right text-xs sm:block"><b>{user?.name||user?.email}</b><div className="text-blue-100">ผู้ดูแลระบบ</div></div>}<button onClick={backToPortal} className="rounded-xl border border-white/30 px-3 py-2 text-xs">{mode==='teacher'?'ออกจากระบบ':'กลับหน้าแรก'}</button></div></div></header>
     <main className="mx-auto max-w-7xl px-4 py-7">{message&&<div className="mb-5 flex justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900"><span>{message}</span><button onClick={()=>setMessage('')}>×</button></div>}
       {isAdmin&&view==='dashboard'&&<><div className="mb-6 flex items-end justify-between"><div><h2 className="text-3xl font-bold text-slate-900">ภาพรวมการเยี่ยมบ้าน</h2><p className="text-slate-500">เฉพาะผู้ดูแลระบบที่ได้รับอนุญาต</p></div><button onClick={()=>setView('form')} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">＋ บันทึกใหม่</button></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[['บันทึกทั้งหมด',stats.total],['นักเรียนชาย',stats.male],['นักเรียนหญิง',stats.female],['ควรติดตามช่วยเหลือ',stats.follow]].map(([label,value])=><div className="card p-5" key={label}><p className="text-sm text-slate-500">{label}</p><strong className="mt-2 block text-4xl text-[#17365d]">{value}</strong><small className="text-slate-400">รายการ</small></div>)}</div><div className="card mt-5 p-5"><h3 className="mb-3 text-lg font-bold">บันทึกล่าสุด</h3>{records.slice(0,5).map(record=><div key={record.recordId} className="flex justify-between border-b border-slate-100 py-3 last:border-0"><div><b>{record.studentName}</b><p className="text-sm text-slate-500">{record.classLevel}/{record.room} · {formatDate(record.visitDate)}</p></div><button onClick={()=>printRecord(record)} className="text-sm font-semibold text-blue-700">พิมพ์ฟอร์ม</button></div>)}{!records.length&&<p className="py-8 text-center text-slate-400">ยังไม่มีข้อมูล</p>}</div></>}
-      {view==='form'&&<><div className="mb-5 flex items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">{form.recordId?'แก้ไขข้อมูล':'บันทึกการเยี่ยมบ้าน'}</h2><p className="text-slate-500">{mode==='teacher'?`บัญชี ${user?.email} · ผู้ดูแลระบบ`:'ระบบสำหรับนักเรียนกรอกและส่งข้อมูลให้คุณครู'}</p></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${mode==='teacher'?'bg-emerald-100 text-emerald-700':'bg-blue-100 text-blue-700'}`}>{mode==='teacher'?'● ยืนยันบัญชี Google แล้ว':'● ส่งข้อมูลอย่างเดียว'}</span></div><VisitForm value={form} setValue={setForm} onSave={save} onCancel={()=>setForm(emptyForm)} saving={saving}/></>}
-      {isAdmin&&view==='records'&&<><div className="mb-5 flex items-end justify-between"><div><h2 className="text-3xl font-bold text-slate-900">รายการเยี่ยมบ้าน</h2><p className="text-slate-500">เฉพาะอีเมลผู้ดูแลที่ได้รับอนุญาต</p></div><button onClick={()=>setView('form')} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">＋ เพิ่มรายการ</button></div><div className="card overflow-x-auto"><table className="w-full min-w-3xl text-left text-sm"><thead className="bg-slate-50 text-slate-600"><tr>{['วันที่','นักเรียน','ชั้น/ห้อง','ผู้ปกครอง','ผู้บันทึก','สถานะ','จัดการ'].map(x=><th className="px-4 py-3" key={x}>{x}</th>)}</tr></thead><tbody>{records.map(record=><tr className="border-t border-slate-100" key={record.recordId}><td className="px-4 py-3">{formatDate(record.visitDate)}</td><td className="px-4 py-3 font-semibold">{record.studentName}</td><td className="px-4 py-3">{record.classLevel}/{record.room}</td><td className="px-4 py-3">{record.guardianName}</td><td className="px-4 py-3 text-xs">{record.submittedBy||'-'}</td><td className="px-4 py-3">{shouldFollow(record)?'ควรติดตาม':'ทั่วไป'}</td><td className="px-4 py-3"><div className="flex flex-wrap gap-2"><button onClick={()=>edit(record)} className="rounded-lg bg-slate-100 px-3 py-2">แก้ไข</button><button onClick={()=>printRecord(record)} className="rounded-lg bg-[#17365d] px-3 py-2 text-white">พิมพ์ฟอร์ม</button><button onClick={()=>deleteRecord(record)} disabled={deletingId===record.recordId} className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 disabled:opacity-50">{deletingId===record.recordId?'กำลังลบ...':'ลบ'}</button></div></td></tr>)}</tbody></table>{!records.length&&<p className="py-12 text-center text-slate-400">ยังไม่มีข้อมูล</p>}</div></>}
+      {view==='form'&&<><div className="mb-5 flex items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">{form.recordId?'แก้ไขข้อมูล':'บันทึกการเยี่ยมบ้าน'}</h2><p className="text-slate-500">{mode==='teacher'?`บัญชี ${user?.email} · ผู้ดูแลระบบ`:'นักเรียนสามารถกลับมาแก้ไขรายการที่บันทึกจากเครื่องนี้ได้'}</p></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${mode==='teacher'?'bg-emerald-100 text-emerald-700':'bg-blue-100 text-blue-700'}`}>{mode==='teacher'?'● ยืนยันบัญชี Google แล้ว':form.recordId?'● กำลังแก้ไขรายการ':'● บันทึกแล้วแก้ไขได้'}</span></div><VisitForm value={form} setValue={setForm} onSave={save} onCancel={()=>setForm(emptyForm)} saving={saving}/></>}
+      {mode==='student'&&view==='studentRecords'&&<><div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">ข้อมูลของฉัน</h2><p className="text-slate-500">แสดงเฉพาะรายการที่บันทึกจากเบราว์เซอร์นี้</p></div><button onClick={()=>{setForm(emptyForm);setView('form')}} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">＋ บันทึกใหม่</button></div><div className="grid gap-4">{studentRecords.map(record=><div className="card flex flex-wrap items-center justify-between gap-4 p-5" key={record.recordId}><div><b className="text-lg text-[#17365d]">{record.studentName}</b><p className="text-sm text-slate-500">ชั้น {record.classLevel}/{record.room} · เลขที่ {record.studentNo||'-'} · แก้ไขล่าสุด {formatDate((record.updatedAt||'').slice(0,10))}</p></div><button onClick={()=>editStudent(record)} className="rounded-xl bg-blue-50 px-5 py-2.5 font-semibold text-blue-700">แก้ไขข้อมูล</button></div>)}{!studentRecords.length&&<div className="card py-12 text-center text-slate-400">ยังไม่มีรายการที่บันทึกจากเครื่องนี้</div>}</div></>}
+      {isAdmin&&view==='records'&&<><div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-3xl font-bold text-slate-900">รายการเยี่ยมบ้าน</h2><p className="text-slate-500">เฉพาะอีเมลผู้ดูแลที่ได้รับอนุญาต</p></div><div className="flex flex-wrap gap-3"><button onClick={printAllRecords} disabled={!records.length||printingAll} className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{printingAll?'กำลังเตรียม...':'⎙ พิมพ์รวมตามเลขที่'}</button><button onClick={()=>{setForm(emptyForm);setView('form')}} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">＋ เพิ่มรายการ</button></div></div><div className="card overflow-x-auto"><table className="w-full min-w-3xl text-left text-sm"><thead className="bg-slate-50 text-slate-600"><tr>{['เลขที่','วันที่','นักเรียน','ชั้น/ห้อง','ผู้ปกครอง','ผู้บันทึก','สถานะ','จัดการ'].map(x=><th className="px-4 py-3" key={x}>{x}</th>)}</tr></thead><tbody>{records.map(record=><tr className="border-t border-slate-100" key={record.recordId}><td className="px-4 py-3 text-center font-bold">{record.studentNo||'-'}</td><td className="px-4 py-3">{formatDate(record.visitDate)}</td><td className="px-4 py-3 font-semibold">{record.studentName}</td><td className="px-4 py-3">{record.classLevel}/{record.room}</td><td className="px-4 py-3">{record.guardianName}</td><td className="px-4 py-3 text-xs">{record.submittedBy||'-'}</td><td className="px-4 py-3">{shouldFollow(record)?'ควรติดตาม':'ทั่วไป'}</td><td className="px-4 py-3"><div className="flex flex-wrap gap-2"><button onClick={()=>edit(record)} className="rounded-lg bg-slate-100 px-3 py-2">แก้ไข</button><button onClick={()=>printRecord(record)} className="rounded-lg bg-[#17365d] px-3 py-2 text-white">พิมพ์ฟอร์ม</button><button onClick={()=>deleteRecord(record)} disabled={deletingId===record.recordId} className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700 disabled:opacity-50">{deletingId===record.recordId?'กำลังลบ...':'ลบ'}</button></div></td></tr>)}</tbody></table>{!records.length&&<p className="py-12 text-center text-slate-400">ยังไม่มีข้อมูล</p>}</div></>}
       {isAdmin&&view==='settings'&&<div className="card max-w-3xl p-6"><h2 className="text-2xl font-bold text-slate-900">ตั้งค่าการเชื่อมต่อ</h2><p className="mt-2 text-sm text-slate-500">เฉพาะผู้ดูแลระบบ</p><div className="mt-6 space-y-4"><Input label="Apps Script Web App URL" name="url" value={config.url} onChange={e=>setConfig(x=>({...x,url:e.target.value}))}/><Input label="Google OAuth Client ID" name="clientId" value={config.clientId} onChange={e=>setConfig(x=>({...x,clientId:e.target.value}))}/><div className="flex gap-3"><button onClick={()=>persistConfig(false)} className="rounded-xl bg-[#17365d] px-5 py-3 font-semibold text-white">บันทึกการตั้งค่า</button><button onClick={()=>persistConfig(true)} className="rounded-xl border border-slate-300 px-5 py-3 font-semibold">ทดสอบการเชื่อมต่อ</button></div></div></div>}
-    </main></div><PrintableForm record={printing}/></>
+    </main></div><PrintableForm records={printing}/></>
 }
 
 export default App
