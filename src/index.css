@@ -10,6 +10,34 @@
 :root { font-family: "Sarabun", Tahoma, sans-serif; color: #183247; background: #f3f6f8; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
+button {
+  cursor: pointer;
+  transition-property: transform, filter, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:not(:disabled):hover {
+  filter: brightness(1.05);
+  box-shadow: 0 5px 12px rgba(15, 23, 42, .12);
+  transform: translateY(-1px);
+}
+button:not(:disabled):active {
+  filter: brightness(.96);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .16);
+  transform: translateY(1px) scale(.97);
+  transition-duration: 60ms;
+}
+button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, .45);
+  outline-offset: 3px;
+}
+button:disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
 .field-label { @apply mb-1.5 block text-sm font-semibold text-slate-700; }
 .field-input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100; }
 .card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
