@@ -2,7 +2,7 @@
 const SHEET_NAME = 'HomeVisits';
 const PHOTO_FOLDER_NAME = 'รูปเยี่ยมบ้านนักเรียน';
 const ADMIN_EMAILS = ['ta458@hatyairat.ac.th','jaeautobot@gmail.com'];
-const API_VERSION = '2026-07-18-v4';
+const API_VERSION = '2026-07-19-v5';
 const HEADERS = [
   'recordId','createdAt','updatedAt','studentName','nickname','classLevel','room','studentNo','gender',
   'villageName','houseNo','villageNo','soi','road','subdistrict','district','province','postalCode',
@@ -24,11 +24,24 @@ function doPost(e) {
     if (body.action === 'version') return json_({ok:true,apiVersion:API_VERSION});
     if (body.action === 'saveStudent') {
       const studentData = body.data || {};
-      studentData.recordId = 'HV-' + Date.now() + '-' + Utilities.getUuid().slice(0,8);
-      studentData.createdAt = new Date().toISOString();
-      studentData.updatedAt = studentData.createdAt;
+      let editToken = '';
+      if (studentData.recordId) {
+        requireStudentEditToken_(studentData.recordId, body.editToken);
+        const original = getRecord_(studentData.recordId);
+        studentData.createdAt = original.createdAt;
+        editToken = studentEditToken_(studentData.recordId);
+      } else {
+        studentData.recordId = 'HV-' + Date.now() + '-' + Utilities.getUuid().slice(0,8);
+        studentData.createdAt = new Date().toISOString();
+        editToken = studentEditToken_(studentData.recordId);
+      }
+      studentData.updatedAt = new Date().toISOString();
       studentData.submittedBy = 'student-form';
-      return json_({ok:true,data:saveRecord_(studentData)});
+      return json_({ok:true,data:saveRecord_(studentData),editToken:editToken});
+    }
+    if (body.action === 'getStudent') {
+      requireStudentEditToken_(body.recordId, body.editToken);
+      return json_({ok:true,data:getRecord_(body.recordId)});
     }
     const user = verifyGoogleIdToken_(body.idToken);
     requireAdmin_(user);
@@ -94,6 +107,22 @@ function requireAdmin_(user) {
   if (ADMIN_EMAILS.indexOf(user.email) === -1) throw new Error('บัญชีนี้ไม่มีสิทธิ์ดูหรือพิมพ์ข้อมูล');
 }
 
+function studentEditToken_(recordId) {
+  const properties = PropertiesService.getScriptProperties();
+  let secret = properties.getProperty('STUDENT_EDIT_SECRET');
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid();
+    properties.setProperty('STUDENT_EDIT_SECRET',secret);
+  }
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(String(recordId),secret)).replace(/=+$/,'');
+}
+
+function requireStudentEditToken_(recordId,editToken) {
+  if (!recordId || !editToken || String(editToken) !== studentEditToken_(recordId)) {
+    throw new Error('ไม่มีสิทธิ์เปิดหรือแก้ไขรายการนี้');
+  }
+}
+
 function getSheet_() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   if (!spreadsheet) throw new Error('กรุณาสร้าง Apps Script จากเมนูส่วนขยายของ Google Sheet');
@@ -132,13 +161,17 @@ function findRecordRow_(sheet,recordId) {
 }
 
 function getPrintRecord_(recordId) {
-  const sheet = getSheet_(), targetRow = findRecordRow_(sheet,recordId);
-  if (targetRow < 0) throw new Error('ไม่พบรายงานที่ต้องการพิมพ์');
-  const record = rowToObject_(sheet.getRange(targetRow,1,1,HEADERS.length).getDisplayValues()[0]);
+  const record = getRecord_(recordId);
   ['studentPhoto','housePhoto','visitPhoto'].forEach(key => {
     record[key] = photoDataUrl_(record[key]);
   });
   return record;
+}
+
+function getRecord_(recordId) {
+  const sheet = getSheet_(), targetRow = findRecordRow_(sheet,recordId);
+  if (targetRow < 0) throw new Error('ไม่พบรายการที่ต้องการ');
+  return rowToObject_(sheet.getRange(targetRow,1,1,HEADERS.length).getDisplayValues()[0]);
 }
 
 function deleteRecord_(recordId) {
