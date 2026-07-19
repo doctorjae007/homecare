@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyclnuEOovtRcKVOcJNmk3roxBZOfFlnTrxKc_cvMgmtm30JMx2bPWZO4HJpQgoMQ/exec'
 const API_VERSION = '2026-07-19-v8'
@@ -32,7 +33,7 @@ function byStudentNo(a,b) {
 }
 
 async function callApi(config, idToken, payload) {
-  const response = await fetch(config.url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({...payload,idToken}) })
+  const response = await fetch(config.url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({...payload,idToken,requestId:`${Date.now()}-${Math.random()}`}) })
   const text = await response.text()
   let result
   try { result = JSON.parse(text) } catch { throw new Error('Apps Script ไม่ได้ตอบกลับเป็น JSON โปรดตรวจสอบสิทธิ์ Web App') }
@@ -238,6 +239,14 @@ function App() {
     return()=>{active=false}
   },[mode])
   const stats = useMemo(()=>({total:records.length,male:records.filter(x=>x.gender==='ชาย').length,female:records.filter(x=>x.gender==='หญิง').length,follow:records.filter(shouldFollow).length}),[records])
+  const openPrintDialog = async printableRecords => {
+    // window.print() captures the current DOM. Flush the new records first so an
+    // existing print document cannot be reused after a record was edited.
+    flushSync(()=>setPrinting(printableRecords))
+    await waitForPrintImages()
+    setMessage('')
+    window.print()
+  }
   const save = async event => {
     event.preventDefault(); setSaving(true); setMessage('')
     const data={...form,recordId:form.recordId||(mode==='teacher'?'HV-'+Date.now():''),createdAt:form.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}
@@ -269,10 +278,7 @@ function App() {
     setMessage('กำลังเตรียมข้อมูลและรูปภาพสำหรับพิมพ์...')
     try {
       const result = await callApi(config,credential,{action:'getPrintRecord',recordId:record.recordId})
-      setPrinting([result.data])
-      await waitForPrintImages()
-      setMessage('')
-      window.print()
+      await openPrintDialog([result.data])
     } catch(error) { setMessage(error.message) }
   }
   const printAllRecords = async () => {
@@ -285,10 +291,7 @@ function App() {
         const result=await callApi(config,credential,{action:'getPrintRecord',recordId:sorted[index].recordId})
         printable.push(result.data)
       }
-      setPrinting(printable)
-      await waitForPrintImages()
-      setMessage('')
-      window.print()
+      await openPrintDialog(printable)
     } catch(error) { setMessage(error.message) } finally { setPrintingAll(false) }
   }
   const deleteRecord = async record => {
@@ -309,7 +312,7 @@ function App() {
     setMessage('กำลังเตรียมข้อมูลและรูปภาพสำหรับพิมพ์...')
     try {
       const result=await callApi(config,'',{action:'getStudentPrint',recordId:record.recordId,editToken})
-      setPrinting([result.data]); await waitForPrintImages(); setMessage(''); window.print()
+      await openPrintDialog([result.data])
     } catch(error) { setMessage(error.message) }
   }
   const searchPreviousStudent = async event => {
