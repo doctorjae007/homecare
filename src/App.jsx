@@ -120,7 +120,7 @@ function Section({number,title,children}) {
 }
 function PhotoUpload({label,hint,name,value,onChange}) {
   return <label className="relative grid min-h-52 cursor-pointer place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 text-center text-slate-500 hover:border-blue-400">
-    <input className="absolute inset-0 opacity-0" type="file" accept="image/*" capture="environment" onChange={e=>onChange(name,e.target.files?.[0])}/>
+    <input className="absolute inset-0 opacity-0" type="file" accept="image/*" onChange={e=>onChange(name,e.target.files?.[0])}/>
     {value ? <img className="h-52 w-full object-cover" src={value} alt={label}/> : <div><b className="block text-[#17365d]">{label}</b><small>{hint}</small></div>}
   </label>
 }
